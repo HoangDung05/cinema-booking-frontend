@@ -4,7 +4,7 @@ export type SeatStatusDTO = {
   id: number;
   seatNumber: string;
   seatType: string;
-  booked: boolean;
+  status: string;
 };
 
 export type ShowtimeDto = {

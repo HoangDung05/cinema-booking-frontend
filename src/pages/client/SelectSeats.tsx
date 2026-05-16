@@ -63,7 +63,7 @@ export default function SelectSeats() {
   const selectedSeatsSorted = sortSeatIds(selectedSeats);
 
   const toggleSeat = (seatObj: SeatStatusDTO) => {
-    if (seatObj.booked) return; // Ghế đã bán không thể click
+    if (seatObj.status === 'BOOKED' || seatObj.status === 'HOLDING') return; // Ghế đã bán hoặc đang giữ chỗ không thể click
 
     setSelectedSeats((prev) => {
       if (prev.find(s => s.id === seatObj.id)) return prev.filter((s) => s.id !== seatObj.id);
@@ -73,7 +73,8 @@ export default function SelectSeats() {
 
   const getSeatStatus = (seatObj: SeatStatusDTO | undefined) => {
     if (!seatObj) return 'disabled' as const;
-    if (seatObj.booked) return 'sold' as const;
+    if (seatObj.status === 'BOOKED') return 'sold' as const;
+    if (seatObj.status === 'HOLDING') return 'holding' as const;
     if (selectedSeats.find(s => s.id === seatObj.id)) return 'selected' as const;
     return 'available' as const;
   };
@@ -98,6 +99,20 @@ export default function SelectSeats() {
           <span className="absolute inset-0 flex items-center justify-center">
             <span className="w-full h-[1px] bg-white/90 rotate-45" />
           </span>
+        </button>
+      );
+    }
+
+    if (status === 'holding') {
+      return (
+        <button
+          key={seatObj!.id}
+          type="button"
+          disabled
+          aria-label={`${seatNumberString} - Đang giữ chỗ`}
+          className="w-8 h-8 rounded-t-xl rounded-b-md bg-amber-500 border border-amber-400/60 opacity-95 cursor-not-allowed flex items-center justify-center"
+        >
+          <span className="material-symbols-outlined text-white text-[16px]">schedule</span>
         </button>
       );
     }
@@ -202,6 +217,12 @@ export default function SelectSeats() {
                 <span className="text-sm text-on-surface-variant">Đã chọn</span>
               </div>
               <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-t-lg rounded-b-sm bg-amber-500 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-white text-[14px]">schedule</span>
+                </div>
+                <span className="text-sm text-on-surface-variant">Đang giữ chỗ</span>
+              </div>
+              <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-t-lg rounded-b-sm bg-red-600 border border-red-400/60 opacity-95 relative overflow-hidden">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-full h-[1px] bg-white/90 rotate-45" />
@@ -267,20 +288,14 @@ export default function SelectSeats() {
               onClick={async () => {
                 if (selectedSeats.length === 0 || isHoldingSeats) return;
                 const userRaw = localStorage.getItem('currentUser');
-                if (!userRaw) {
-                  window.dispatchEvent(new Event('open-login-modal'));
-                  return;
+                let realUserId: number | undefined = undefined;
+                if (userRaw) {
+                  const user = JSON.parse(userRaw);
+                  realUserId = user.id || user.userId;
                 }
                 
                 try {
                   setIsHoldingSeats(true);
-                  const user = JSON.parse(userRaw);
-                  const realUserId = user.id || user.userId;
-                  if (!realUserId) {
-                     alert("Lỗi dữ liệu phiên đăng nhập. Vui lòng đăng xuất và đăng nhập lại.");
-                     return;
-                  }
-                  
                   const res = await bookingService.holdBooking({
                     userId: realUserId,
                     showtimeId: booking!.showtimeId,

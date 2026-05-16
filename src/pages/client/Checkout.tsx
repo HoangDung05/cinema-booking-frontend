@@ -9,6 +9,7 @@ import PaymentMethods, { PaymentMethod } from '../../features/checkout/component
 export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('momo');
   const [promoCode, setPromoCode] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -81,8 +82,10 @@ export default function Checkout() {
 
   const handlePayment = async () => {
     if (!user || (!user.id && !(user as any).userId)) {
-      window.dispatchEvent(new CustomEvent('open-login-modal'));
-      return;
+      if (!guestEmail || !/^\S+@\S+\.\S+$/.test(guestEmail)) {
+        setErrorMsg("Vui lòng nhập địa chỉ email hợp lệ để nhận thông tin vé.");
+        return;
+      }
     }
     
     const bookingId = location.state?.bookingId;
@@ -99,6 +102,7 @@ export default function Checkout() {
       const resp = await bookingService.payBooking(bookingId, {
         voucherCode: voucherCodeToPay,
         paymentMethod: paymentMethod.toUpperCase(),
+        guestEmail: (!user || (!user.id && !(user as any).userId)) ? guestEmail : undefined,
       });
       navigate('/booking-success', { 
         replace: true,
@@ -205,6 +209,25 @@ export default function Checkout() {
                   <span className="material-symbols-outlined text-on-surface-variant text-xl">navigate_next</span>
                 </button>
               </div>
+
+              {/* Guest Email Contact Info */}
+              {(!user || (!user.id && !(user as any).userId)) && (
+                <div className="rounded-2xl p-5 border border-outline-variant/20 bg-surface-container-low">
+                  <h3 className="text-lg font-headline font-bold text-on-surface mb-4">Thông tin liên hệ (Bắt buộc)</h3>
+                  <div>
+                    <label className="block text-sm font-medium text-on-surface mb-1">Email nhận vé</label>
+                    <input 
+                      type="email" 
+                      value={guestEmail}
+                      onChange={e => setGuestEmail(e.target.value)}
+                      placeholder="example@gmail.com"
+                      className="w-full px-4 py-3 rounded-xl border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                      required
+                    />
+                    <p className="text-xs text-on-surface-variant mt-1">Vé điện tử sẽ được gửi về địa chỉ email này.</p>
+                  </div>
+                </div>
+              )}
 
               {/* Payment methods */}
               <PaymentMethods paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} />

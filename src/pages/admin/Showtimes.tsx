@@ -108,7 +108,7 @@ export default function Showtimes() {
           try {
             const seats = await showtimeService.getSeatsByShowtimeId(row.id);
             const totalSeats = seats.length;
-            const soldSeats = seats.filter((s) => s.booked).length;
+            const soldSeats = seats.filter((s) => s.status === 'BOOKED').length;
             return { id: row.id, totalSeats, soldSeats };
           } catch {
             return { id: row.id, totalSeats: 0, soldSeats: 0 };

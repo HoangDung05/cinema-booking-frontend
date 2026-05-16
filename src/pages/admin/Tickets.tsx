@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { bookingService, type AdminBookingDTO } from '../../services/bookingService';
 
-type TicketStatus = 'PENDING' | 'PAID' | 'CANCELLED';
+type TicketStatus = 'PENDING' | 'AWAITING_CONFIRMATION' | 'PAID' | 'CANCELLED';
 
 type TicketRow = {
   booking_id: number;
@@ -47,6 +47,8 @@ function mapBookingStatus(status: TicketStatus) {
   switch (status) {
     case 'PAID':
       return { label: 'Đã thanh toán', className: 'bg-emerald-100 text-emerald-700' };
+    case 'AWAITING_CONFIRMATION':
+      return { label: 'Đang chờ xác nhận', className: 'bg-blue-100 text-blue-700' };
     case 'CANCELLED':
       return { label: 'Đã hủy', className: 'bg-red-100 text-red-700' };
     default:
@@ -76,6 +78,16 @@ export default function Tickets() {
     };
     loadBookings();
   }, []);
+
+  const handleConfirm = async (id: number) => {
+    if (!window.confirm('Xác nhận thanh toán cho vé này?')) return;
+    try {
+      await bookingService.confirmBooking(id);
+      setRows(prev => prev.map(r => r.booking_id === id ? { ...r, status: 'PAID' } : r));
+    } catch (e: any) {
+      alert('Lỗi xác nhận: ' + (e.response?.data || e.message));
+    }
+  };
 
   const filteredRows = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -127,6 +139,7 @@ export default function Tickets() {
                   <th className="p-4 font-medium">Ghế</th>
                   <th className="p-4 font-medium">Tổng tiền</th>
                   <th className="p-4 font-medium">Trạng thái</th>
+                  <th className="p-4 font-medium">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-gray-100">
@@ -147,6 +160,16 @@ export default function Tickets() {
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${status.className}`}>
                           {status.label}
                         </span>
+                      </td>
+                      <td className="p-4">
+                        {row.status === 'AWAITING_CONFIRMATION' && (
+                          <button
+                            onClick={() => handleConfirm(row.booking_id)}
+                            className="px-3 py-1 bg-primary text-on-primary rounded text-xs font-medium hover:bg-primary/90 transition-colors"
+                          >
+                            Xác nhận
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

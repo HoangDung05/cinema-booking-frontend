@@ -21,7 +21,7 @@ export interface PriceCalculateResponse {
 }
 
 export interface BookingRequest {
-  userId: number;
+  userId?: number;
   showtimeId: number;
   seatIds: number[];
   voucherCode?: string;
@@ -66,6 +66,7 @@ export interface AdminBookingDTO {
 export interface PayBookingRequest {
   paymentMethod: string;
   voucherCode?: string;
+  guestEmail?: string;
 }
 
 export interface BookingDetailResponse {
@@ -101,9 +102,15 @@ export const bookingService = {
     return response.data;
   },
 
-  // Giai đoạn 2: Thanh toán Hóa đơn PENDING -> PAID
+  // Giai đoạn 2: Thanh toán Hóa đơn PENDING -> AWAITING_CONFIRMATION
   payBooking: async (bookingId: number, request: PayBookingRequest): Promise<BookingResponse> => {
     const response = await apiClient.post<BookingResponse>(`/bookings/${bookingId}/pay`, request);
+    return response.data;
+  },
+
+  // Admin confirm booking AWAITING_CONFIRMATION -> PAID
+  confirmBooking: async (bookingId: number): Promise<BookingResponse> => {
+    const response = await apiClient.post<BookingResponse>(`/bookings/${bookingId}/confirm`);
     return response.data;
   },
 
