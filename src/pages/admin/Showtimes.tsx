@@ -150,6 +150,22 @@ export default function Showtimes() {
   const [saving, setSaving] = useState(false);
   
   const [viewingShowtime, setViewingShowtime] = useState<ShowtimeRow | null>(null);
+  const [loadingSeats, setLoadingSeats] = useState(false);
+
+  const openViewShowtime = async (st: ShowtimeRow) => {
+    setViewingShowtime(st);
+    setLoadingSeats(true);
+    try {
+      const seats = await showtimeService.getSeatsByShowtimeId(st.id);
+      const totalSeats = seats.length;
+      const soldSeats = seats.filter((s) => s.status === 'BOOKED').length;
+      setViewingShowtime({ ...st, seats, totalSeats, soldSeats });
+    } catch (e) {
+      console.error('Không tải được danh sách ghế:', e);
+    } finally {
+      setLoadingSeats(false);
+    }
+  };
 
   const loadData = useCallback(async () => {
     setLoadError('');
@@ -419,7 +435,7 @@ export default function Showtimes() {
                               return (
                                  <div 
                                      key={st.id} 
-                                     onClick={() => setViewingShowtime(st)}
+                                     onClick={() => openViewShowtime(st)}
                                      className={`absolute top-4 bottom-4 rounded-2xl p-3 shadow-sm border flex flex-col justify-between cursor-pointer group/item transition-all hover:scale-[1.02] hover:shadow-md hover:z-30 overflow-hidden ${bgClass}`}
                                      style={{ left: `calc(${left}% + 4px)`, width: `calc(${width}% - 8px)`, minWidth: '120px' }}
                                  >
@@ -492,13 +508,13 @@ export default function Showtimes() {
                        <span className="material-symbols-outlined">delete</span>
                    </button>
                    <div className="w-px h-10 bg-gray-200 mx-1"></div>
-                   <button 
-                       onClick={() => setViewingShowtime(null)} 
-                       className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
-                   >
-                       <span className="material-symbols-outlined">close</span>
-                   </button>
-               </div>
+                    <button 
+                        onClick={() => setViewingShowtime(null)} 
+                        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
+                    >
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
             </div>
             
             {/* Body Modal */}
@@ -507,6 +523,13 @@ export default function Showtimes() {
                    <div className="flex-1">
                        <span className="block text-xs text-gray-500 uppercase font-bold mb-1">Ghế đã bán</span>
                        <span className="text-2xl font-headline font-bold text-gray-900">{viewingShowtime.soldSeats} <span className="text-lg text-gray-400 font-medium">/ {viewingShowtime.totalSeats}</span></span>
+                   </div>
+                   <div className="w-px h-10 bg-gray-200"></div>
+                   <div className="flex-1">
+                       <span className="block text-xs text-amber-600 uppercase font-bold mb-1">Đang giữ chỗ</span>
+                       <span className="text-2xl font-headline font-bold text-amber-600">
+                         {loadingSeats ? '...' : viewingShowtime.seats.filter(s => s.status === 'HOLDING').length}
+                       </span>
                    </div>
                    <div className="w-px h-10 bg-gray-200"></div>
                    <div className="flex-1">
